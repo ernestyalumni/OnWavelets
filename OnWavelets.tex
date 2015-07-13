@@ -1,0 +1,809 @@
+% file: OnWavelets.tex
+% Everything about Wavelets and Filters from an introductory (pedagogical) starting point
+% using the sample article template for the amsart document class
+% Typeset with LaTeX format
+% cf. Math Into Latex Third Edition pp. 290
+% This file has my modifications
+% Fund Science! If you like what I'm doing with general Physics research and education outreach, 
+% please consider making a financial contribution at either or both crowdfunding campaigns:
+% ernestyalumni.tilt.com 
+% ernestyalumni at Patreon
+%
+% Facebook      : ernestyalumni 
+% github        : ernestyalumni
+% gmail         : ernestyalumni 
+% linkedin      : ernestyalumni 
+% tumblr        : ernestyalumni 
+% twitter       : ernestyalumni 
+% wordpress.com : ernestyalumni
+% youtube       : ernestyalumni 
+% Patreon       : ernestyalumni
+% Tilt/Open     : ernestyalumni
+%
+% Ernest Yeung was supported by Mr. and Mrs. C.W. Yeung, Prof. Robert A. Rosenstone, Michael Drown, Arvid Kingl, Mr. and Mrs. Valerie Cheng, and the Foundation for Polish Sciences, Warsaw University.
+% 
+% This code is open-source, governed by the Creative Common license.  Use of this code is governed by the Caltech Honor Code: ``No member of the Caltech community shall take unfair advantage of any other member of the Caltech community.'' 
+% 
+
+\documentclass[twoside]{amsart}
+
+\setcounter{tocdepth}{1} % to get subsubsections in toc 
+% cf. http://www.latex-community.org/forum/viewtopic.php?f=47&p=44760
+
+
+\usepackage{amssymb,latexsym}
+\usepackage{graphics}
+\usepackage{tikz}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, urlcolor=blue}
+
+\usetikzlibrary{matrix,arrows}
+
+\usepackage[parfill]{parskip}
+
+
+
+\oddsidemargin-0.25cm
+\evensidemargin-0.45cm
+\topmargin-2.05cm
+\textwidth16.75cm
+\textheight25.05cm
+
+\linespread{1.2}
+
+%plain makes sure that we have page numbers
+\pagestyle{plain}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem*{main}{Main Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+\theoremstyle{remark}
+\newtheorem*{notation}{Notation}
+
+\numberwithin{equation}{section}
+
+%This defines a new command \questionhead which takes one argument and
+%prints out Question #. with some space.
+\newcommand{\questionhead}[1]
+  {\bigskip\bigskip
+   \noindent{\small\bf Question #1.}
+   \bigskip}
+
+\newcommand{\problemhead}[1]
+  {
+   \noindent{\small\bf Problem #1.}
+   }
+
+\newcommand{\exercisehead}[1]
+  { \smallskip
+   \noindent{\small\bf Exercise #1.}
+  }
+
+\newcommand{\solutionhead}[1]
+  {
+   \noindent{\small\bf Solution #1.}
+   }
+
+
+
+%-----------------------------------
+\begin{document}
+%-----------------------------------
+\title[Wavelets]{On Wavelets}
+\author{Ernest Yeung}
+\address{}
+\email{ernestyalumni@gmail.com}
+\urladdr{http://ernestyalumni.wordpress.com}
+\thanks{linkedin: ernestyalumni}
+
+%Ernest Yeung was supported by Mr. and Mrs. C.W. Yeung, Prof. Robert A. Rosenstone, Michael Drown, Arvid Kingl, Mr. and Mrs. Valerie Cheng, and the Foundation for Polish Sciences, Warsaw University.            }
+
+%I am on linkedin: ernestyalumni. 
+
+%I am crowdfunding on Tilt/Open and at Patreon to support basic sciences research: \url{ernestyalumni.tilt.com} and ernestyalumni at Patreon.  
+
+%Tilt/Open is an open-source crowdfunding platform that is unique in that it offers open-source tools for building a crowdfunding campaign.  Tilt/Open has been used by Microsoft and Dick’s Sporting Goods to crowdfund their respective charity causes.
+
+%Patreon is a subscription crowdfunding service that allows you to directly support the works of artists (and scientists and educators! See the Science and Education section of Patreon), allowing you to be a patron of the arts (and the sciences!). Patreon is run by creators and artists and allows you to be flexible in your support. }
+
+\keywords{Wavelets}
+\subjclass[Wavelets]{Wavelets}
+\date{19 juin 2015}
+\begin{abstract}
+I wanted to expound here  on wavelets, for the application to wavelet collocation methods on an adaptive grid, and numerical Partial Differential Equations (PDE)s.    
+\end{abstract}
+
+\maketitle
+
+
+
+
+\tableofcontents
+
+\section{Executive Summary}
+
+\subsection{Introduction}
+
+Very aptly, I should mention that my interests in wavelets and wavelet collocation began, and is focused upon, when (around 18 juin 2015) watching the video uploaded to YouTube of the talk given by Adam Lichtl and Stephen Jones (of SpaceX), given at the GPU Tech Conference, San Jose, California, in March 17 - 20, 2015 \footnote{\url{https://youtu.be/txk-VO1hzBY}, originally posted at \url{http://on-demand.gputechconf.com/gtc/2015/video/S5398.html}}.  Lichtl, at the end, strongly recommended that one look at the research of Vasilyev, Regele, Lamb, Ramaprabhu, Oefelein, and Massot.  Lichtl and Jones mentioned Wavelets and Wavelet compression in their slides and I also uncovered that one should learn and use something called ``wavelet collocation.''  
+
+I do very much share in the vision and mission of SpaceX of getting humanity to become a truly spacefaring civilization, so I am focused on, at the very minimal stage, trying my best to comprehensively understand combustion computational fluid dynamics (CFD), and seeing how I could help out or improve, whether it would be numerical implementation, theory, or understanding the latest research from universities and professors and translating that into implementation at SpaceX.  
+
+\subsection{As of 20150712}
+
+I tried my best to read some papers.  Please read the Readings part because I have some questions there and would like further supervision/guidance on which way to go.  I did, for the scaling functions and wavelets in a multiresolution analysis, define a $k$-algebra, $k^j$, associated with each subspace $V^j$, for the $j$-level resolution scaling function and wavelet \emph{coefficients}\ref{Sec:2ndGenWavelets}, which I'd hope would make computation in the theory in terms of filter banks easier.  I also spent a considerable amount of time reviewing what a wavelet was, based upon MIT OCW 18.327, and I wrote a review on that material \cite{EYeung2015} which I hope would be useful to professors who are teaching wavelet methods and engineers working who need to pick up the skill.  Of note, see the relevant github repositories because I implement everything, from single level discrete wavelet transformations (and inverse), and with various wavelets (Haar, Daubechies, etc.) in Python, as opposed to using the Matlab Wavelet toolkit.  
+
+\part{Readings}
+
+\section{As of 20150712}
+
+My look into wavelet collocation methods began with the survey paper by Schneider and Vasilyev (2010) \cite{KSchneiderOVasilyev2010}.  It surveyed the number of formulations and wavelet methods to treat fluid mechanics.  While in retrospect, I would say that I concretely understand the first half of the methods described in the paper (especially after reviewing MIT OCW 18.327 \cite{EYeung2015}, and vaguely the second half, I would like to know the progress of wavelet methods for fluid mechanics in 2015. 
+
+Then I wanted to know what \emph{wavelet collocation} is (what is wavelet collocation?).  I read Vasilyev, Paolucci, Sen 1995 \cite{OVasilyevSPaolucciMSen1995}.  In retrospect, I want clarification on wavelet collocation, as I understand it like this so far: you have a grid $\mathcal{G}^{j}$, \, $\forall \, j = 0 , 1 \dots $ of various resolutions $j$.  Points in the $j$th resolution are in the grid of points in the $j+1$th resolution (i.e. $\lbrace x^{j}_k \rbrace \subset \lbrace x^{j+1}_k$).  Develop methods of computation using the same values of the function $f$ desired on some points in resolution $j$ i.e. $\lbrace f(x^j_k) \rbrace_{k\in\mathcal{K}^j}$ and we can ``get at'' higher or lower resolutions with these values; thus wavelet collocation. Please clarify my understanding.  
+
+Next I read Vasilyev and Bowman's paper (2000) \cite{OVasilyevCBowman2000} largely because I wanted to understand what it meant of ``\emph{second-generation} wavelet collocation method.''  I would like to point out the forward interpolating wavelet transform and inverse wavelet interpolating transform I implemented (Subsection \ref{SubSec:Interpolatingscalingfunction}).  Further, I wanted to point out in the Lifting Scheme section whether Eqns. (21),(22),(23) \cite{OVasilyevCBowman2000} were stated incorrectly (cf. Eqns. \ref{Eq:djcjlifted}, \ref{Eq:cj+1lifted}).  I want to mention that for the scaling functions and wavelets in a multiresolution analysis, I define a $k$-algebra, $k^j$, associated with each subspace $V^j$, for the $j$-level resolution scaling function and wavelet \emph{coefficients}\ref{Sec:2ndGenWavelets}.  As of 20150712, my reading has stopped at Sec. 2.3. The Lifted Interpolating Wavelet Transform \cite{OVasilyevCBowman2000}: I would like supervision and guidance to point out what further I should do because I want to focus on the questions and methods (in 2-d, 3-d, not 1-d) that would directly aid in SpaceX's mission of combustion CFD in rocket engines.   
+
+I had no idea what wavelets were, so I took a look at MIT (Massachusetts Institute of Technology) OCW (Open-Course Ware) 18.327 Wavelets, Filter Banks and Applications, taught by Strang and Amaratunga in Spring 2003 \cite{GStrangKAmaratunga2003}.  There's a lot that's lacking and deficient with the material, pedagogically and technically (see my writeup \cite{EYeung2015}), but for the discussion here, I want to emphasize one point: everything that's been done (or seems to have been done) using Matlab's Wavelet Toolkit can be done with Python's \href{http://www.pybytes.com/pywavelets/}{PyWavelets} library, along with Python libraries numpy, scipy.  For example, I've rewritten about 40\% of the MIT OCW 18.327 Matlab tools in Python (see \href{https://github.com/ernestyalumni/18-327-wavelets-filter-banks}{github}).  
+
+I would like to know what's being used to implement adaptive grid for wavelet collocation methods for numerical PDEs and how Python tools would fit in there.  I'd also welcome any requests to collaborate on using Python in these avenues.    
+
+
+
+\part{Review of Basic Notions}
+
+This part is a review of basic definitions and ``basic'' notions of wavelets and multiresolution analysis, that I myself had to pickup, coming from having no background on wavelets.  Practitioners can skip this part entirely (if you don't have the time, I encourage you to skip it), because even with notation, I try to use ``standard'' notation I see in texts and in papers (particularly from Vasilyev).  
+
+\section{Basic definitions}
+
+\begin{definition}
+  \textbf{wavelet } $\psi = \psi(t) \in L^2(\mathbb{R})$, s.t. 
+\begin{equation}
+  \psi^j_k := 2^{j/2} \psi(2^jt-k) \quad \, \forall \, j,k \in \mathbb{Z}
+\end{equation}
+where $\psi^j_k$ is an orthonormal basis in Hilbert space $L^2(\mathbb{R})$
+\end{definition}
+
+\begin{definition}\label{Def:multiresolutionanalysis}
+  \textbf{multiresolution analysis} a is sequence  $(V^j)_{j\in \mathbb{Z}}$ of subspaces of $L^2(\mathbb{R})$ s.t. 
+\begin{enumerate}
+  \item[(i)] $\dots \subset V^{-1} \subset V^0 \subset V^1 \subset \dots $
+  \item[(ii)] \[
+\text{span}\bigcup_{j \in \mathbb{Z}} V^j = L^2(\mathbb{R})
+\]
+  \item[(iii)] 
+\[
+\bigcap_{j\in \mathbb{Z}} V^j = \lbrace 0 \rbrace
+\]
+  \item[(iv)] $f(x) \in V^j$ iff $f(2^{-j}x) \in V^0$ i.e. $V^j = J^{-j}(V^0)$ \, $\forall j \in \mathbb{Z}$
+  \item[(v)] $f\in V^0$ iff $f(x-m) \in V^0$ \, $\forall \, m \in \mathbb{Z}$,  i.e. $V^0 = T_n(V_0)$ \, $\forall \, n \in \mathbb{Z}$
+\item[(vi)] $\exists \, \Phi \in V^0$ called \textbf{scaling function } s.t. $\lbrace \Phi(t-m)\rbrace_{m\in \mathbb{Z}}$ is orthonormal basis in $V_0$, i.e. $\forall \, j \in \mathbb{Z}$, $\lbrace 2^{j/2}\Phi(2^jx-k)\rbrace_{k\in \mathbb{Z}}$ is orthonormal basis in $V_j$
+\end{enumerate}
+\end{definition}
+with
+\begin{definition}[Translation operator, $T^h$]
+  Given $h\in \mathbb{R}$, define \textbf{translation operator} $T^h: L(\mathbb{R},\mathbb{R}) \to L(\mathbb{R}, \mathbb{R})$ or $T^h$ acting on functions on $\mathbb{R}$
+\begin{equation}
+  T_h(f)(x) = f(x-h)
+\end{equation}
+\end{definition}
+
+\begin{definition}[dyadic dilation operator, $J^n$]
+Given $s\in \mathbb{Z}$, define \textbf{dyadic dilation} operator $J^n$ acting on functions on $\mathbb{R}$ by 
+\begin{equation}
+  J^n(f)(x) = f(2^nx)
+\end{equation}
+\end{definition}
+Note that in the definition for multiresolution analysis \ref{Def:multiresolutionanalysis}, properties (i),(ii) tells us that we have a filtered topological space (EY: 20150624 please tell me if this is correct).  
+
+\begin{lemma} (Lemma 2.5 of Wojtaszczyk (1997) \cite{PWojtaszczyk1997})
+\begin{enumerate}
+  \item[(a)] $\forall \, h \in \mathbb{R}$, $T_h$ is an isometry on $L^2(\mathbb{R})$ 
+  \item[(b)] $\forall \, s \in \mathbb{Z}$, $2^{n/2} J^n$ isometry on $L^2(\mathbb{R})$
+\end{enumerate}
+\end{lemma}
+
+
+\begin{definition}
+  sequence of vectors $(x_n)_{n\in A}$, $x_n \in V$, $V$ vector space or $\mathbb{R}$-module in Hilbert space $H$ is a \textbf{Riesz sequence} if $\exists \, $ constants $0<c\leq C$ s.t.
+\begin{equation}
+  c \left( \sum_{n \in A} |a_n|^2 \right)^{1/2} \leq \| \sum_{n\in A} a_n x_n \| \leq C \left( \sum_{n\in A} |a_n|^2 \right)^{1/2}
+\end{equation}
+$\forall \, $ sequences $(a_n)_{n\in A}$, $a_n \in \mathbb{R}$ i.e. scalars $a_n$. 
+\end{definition}
+A \textbf{Riesz basis } $(x_n)_{n\in A}$ is a Riesz sequence \emph{and } if $\text{span}(x_n)_{n\in A} = H$.  
+
+Note when $c=C = 1$
+\[
+ \left( \sum_{n \in A} |a_n|^2 \right)^{1/2} = \| \sum_{n\in A} a_n x_n \| = \left( \sum_{n\in A} |a_n|^2 \right)^{1/2}
+\]
+implying $(x_n)_{n\in A}$ is an orthonormal system.  
+
+\begin{lemma}
+\begin{enumerate}
+\item[(a)]
+If Riesz basis $(x_n)_{n\in \mathbb{Z}}$ in $H$, \\
+\phantom{If } then $\exists \, $ biorthogonal functionals $(x^*_n)_{n\in \mathbb{Z}} \in H$ s.t. $\langle x^*_n, x_m \rangle = \delta_{n,m}$. \\
+$(x_n^*)_{n\in \mathbb{Z}}$ also Riesz basis in $H$
+\item[(b)] if $(x_n)_{n\in \mathbb{Z}}$ Riesz basis in $H$, $\exists \, $ constants $0< c\leq C$ s.t.
+\begin{equation}
+  c \| x \| \leq \left( \sum_{n \in \mathbb{Z}} | \langle x_0 , x_n \rangle |^2 \right)^{1/2} \leq C \| x \| \quad \, \forall \, x \in H
+\end{equation}
+\end{enumerate}
+\end{lemma}
+Lemma 2.7 from Wojtaszczyk (1997) \cite{PWojtaszczyk1997}.  
+
+Remark: $(x_n)_{n\in A}$, $x_n \in $ Hilbert space $H$ is a \textbf{frame} if $\exists \, $ constants $0< c\leq C$ s.t.
+\begin{equation}
+  c\| x\| \leq \left( \sum_{n\in \mathbb{Z}} | \langle x, x_n \rangle|^2 \right)^{1/2} \leq C \| x \| \quad \, \forall \, x \in H
+\end{equation}
+holds.  
+
+if $c=C$, the frame is a \textbf{tight frame}.
+
+If $(x_n)_{n\in A}$ is a frame, $(x_n)_{n\in A}$ need not be linearly independent, 
+
+
+\exercisehead{2.15} from Wojtaszczyk (1997) \cite{PWojtaszczyk1997} This is an \emph{example} of a \emph{frame}, using as our sequence of vectors \emph{indicator functions}:
+
+Let $\varphi(x) = 1_{[0,2]}$, where, recall, the indicator function of $A \subset X$, $1_A$ is $\begin{aligned} & \quad \\
+  & 1_A : X \to \lbrace 0 ,1 \rbrace \\
+  & 1_A(x) = \begin{cases} 1 & \text{ if } x \in A \\
+    0 & \text{ otherwise } \end{cases} \end{aligned}$
+
+Consider the family $\lbrace \varphi(t-m) \rbrace_{m\in \mathbb{Z}}$.  
+
+Recall this definition:
+\[
+L^n = \lbrace \text{ all functions in $L^2(\mathbb{R})$ constant on all intervals $[k2^{-n}, (k+1)2^{-n}]$ \, $ \forall \, k \in \mathbb{Z}$ } \rbrace
+\]
+
+For $L^0$, i.e. $n=0$, consider the intervals $[k,k+1]$\, $\forall \, k \in \mathbb{Z}$.  
+
+Let $x\in L^0$.  Then $x$ has the form $x = \sum_{r\in \mathbb{Z}} a_r 1_{[r,r+1]}$.  
+
+Now
+\[
+\| x\|^2_2 \equiv \| x\|^2 = \int_{-\infty}^{\infty} x^2(t) dt = \int_{-\infty}^{\infty} dt \sum_{r,s\in \mathbb{Z}} a_r a_s 1_{[r,r+1]} 1_{[s,s+1]} = \sum_{r\in \mathbb{Z}} a_r^2
+\]
+Now
+\[
+\begin{gathered}
+  | \langle x, \varphi(t-m) \rangle |^2 = \int_{-\infty}^{\infty} dt x(t) \varphi(t-m) = \int_{-\infty}^{\infty} dt \sum_{r\in \mathbb{Z}} a_r 1_{[r,r+1]}(t) 1_{[0,2]}(t-m) = \\
+  = \sum_{r\in \mathbb{Z}}a_r \int_{-\infty}^{\infty} dt 1_{[r,r+1]}(t) 1_{[0,2]}(t-m) = \sum_{r\in \mathbb{Z}} a_r \int_m^{m+2} dt 1_{[r,r+1]}(t) = a_m + a_{m+1}
+\end{gathered}
+\]
+Then
+\[
+\sum_m | \langle x, \varphi(t-m) \rangle |^2 = \sum_m a_m + \sum_m a_{m+1} = 2 \sum_m a_m
+\]
+
+Now
+\[
+\sum_m | \langle x , \varphi(t-m) \rangle |^2 = 2 \sum_m a_m \leq 2 \sum_m a_m^2 = C^2 \| x \|^2
+\]
+where using the Cauchy-Schwartz inequality, $| \sum_m a_m | \leq \sqrt{ \sum_m a_m^2 }$.  
+\[
+\int_{-\infty}^{\infty}x(t) dt = \sum_{r\in \mathbb{Z}} a_r = \| x \|_1
+\]
+
+EY : 20150624 It's not clear to me how to get the other inequality involving $c$ in the definition of a frame.  I need some help here. I'll try H\"{o}lder's inequality.  Recall H\"{o}lder's inequality\cite{ELiebMLoss2001}:
+\[
+| \int_{\Omega} fg d\mu | \leq \| f \|_p \| g \|_q
+\]
+Then try
+\[
+\int x^2(t) dt \leq \| x \|_1 \| x \|_{\infty} = \| x \|_1
+\]
+Then $c=1$.  
+
+$\lbrace \varphi(t-m) \rbrace_{m\in \mathbb{Z}}$ is a frame.
+
+\hrulefill
+
+This is an \emph{example} of an \emph{orthonormal basis} being a \emph{tight frame}.  Let $f(x) = H\left( \frac{x}{2} \right)$ where $H$ is a Haar wavelet.  Consider $\lbrace 2^{j/2} f(2^jt-k) \rbrace_{j,k \in \mathbb{Z}}$.  
+
+Let $x = x(t) \in L^2(\mathbb{R})$.  
+
+Now, explicitly, the $L^2$ norm of $x$ is 
+\[
+\| x\|^2 = \int_{-\infty}^{\infty} dt x^2(t)
+\]
+and its inner product with $x_n = 2^{j/2} f(2^t-k)$ is, explicitly
+\[
+| \langle x , x_n \rangle |^2 = \int_{-\infty}^{\infty} dt x(t) 2^{j/2} f(2^j t-k) = \int_{-\infty}^{\infty} dt x(t) 2^{j/2} H(2^{j-1} t - \frac{k}{2} ) = 2^{j/2} \left[ \int_{\frac{k}{2^j}}^{\frac{k+1}{2^j}} dt x(t) - \int_{\frac{k+1}{2^j} }^{\frac{k+2}{2^j} } dt x(t) \right] 
+\]
+Instead, use the fact that the multiresolution analysis of the Haar wavelet , $\lbrace 2^{j/2} H(2^jt -k)\rbrace_{j,k \in \mathbb{Z}}$ is orthonormal in $L^2(\mathbb{R})$.  Then
+\[
+\sum_{n\in \mathbb{Z}} |\langle x,x_n \rangle|^2 = \| x \|^2
+\]
+so that $c=C=1$.  $\lbrace 2^{j/2} f(2^jt-k) \rbrace_{j,k \in \mathbb{Z}}$ is a tight frame, that happens to be an orthonormal basis.  
+
+However, consider this example of a tight frame in $\mathbb{R}^2$, that is \emph{not} linearly independent.  Consider $\lbrace (1,0), (-\frac{1}{2}, \frac{\sqrt{3}}{2} ), (-\frac{1}{2}, \frac{-\sqrt{3}}{2} )  \rbrace$ in $\mathbb{R}^2$.    
+
+Consider $v\in \mathbb{R}^2$.  Then for $v = (x,y)$, making the inner product with the various vectors, 
+\[
+\begin{aligned}
+  & | \langle v, 1 \rangle |^2 = x^2 \\ 
+  & |\langle v, \left( \frac{-1}{2}, \frac{\sqrt{3}}{2} \right) \rangle|^2 = \left| \frac{-x}{2} + \frac{\sqrt{3}}{2} y \right|^2 \\ 
+  & | \langle v, \left( - \frac{1}{2}, \frac{ -\sqrt{3}}{2} \right) \rangle |^2 = | \frac{-x}{2} -\frac{\sqrt{3}}{2} y |^2
+\end{aligned}
+\]
+So then
+\[
+\sum_{n\in \mathbb{Z}} |\langle x , x_n \rangle |^2 = x^2 + \frac{1}{4} ( \sqrt{3}y-x)^2 + \frac{1}{4} (x^2 + \sqrt{3}xy + 3y^2) = \frac{3x^2}{2} + \frac{3}{2} y^2 = \frac{3}{2} \|x\|^2
+\]
+So $c=C=\frac{3}{2}$.  This particular collection $\lbrace (1,0), (-\frac{1}{2}, \frac{\sqrt{3}}{2} ), (-\frac{1}{2}, \frac{-\sqrt{3}}{2} )  \rbrace$ is a tight frame.  But it is not linearly independent. 
+
+\part{Second Generation multiresolution analysis}
+
+\section{Basic notions}
+
+Vasilyev and Bowman described Second-Generation Wavelets in 2000 in Sec. 2 of \cite{OVasilyevCBowman2000}. 
+
+\begin{definition}
+  A \textbf{second generation multiresolution analysis} $M$ of function space $L$ is \\
+a sequence of closed subspaces $M = \lbrace V^j \subset L | j \in J \rbrace$
+\begin{enumerate}
+  \item $V^j \subset V^{j+1}$
+  \item $\bigcup_{j\in J} V^j $ dense in $L$ 
+  \item $\forall \, j \in J$, $V^j$ has a Riesz basis given by scaling functions $\lbrace \phi^j_k | k \in K^j \rbrace$
+\end{enumerate}
+\end{definition}
+
+Recall subset $A \subseteq $ topological space $X$ dense, \\
+\phantom{ Recall } if $\forall \, x \in X$, $x\in A$ or $x$ limit pt. of $A$ if $\forall \, $ open $\mathcal{O} \ni x$, $\mathcal{O} \bigcap A - \lbrace x \rbrace \neq \emptyset$.  \\
+\phantom{ Recall if } or $x\in X$, if $\forall \, $ open $\mathcal{O} \ni x$, then $\mathcal{O} \bigcap A \neq \emptyset$
+
+Thus, for $\bigcup_{j\in J} V^j$ dense in $L$, then $\forall \, f \in L$, then $\forall \, $ open neighborhood $\mathcal{O} \ni f$ (imagine taking $\mathcal{O}$ ``very small''), then $\mathcal{O} \bigcap \bigcup_{j\in J}V^j - \lbrace f \rbrace \neq \emptyset$.  Let $f^j \in \bigcup_{j\in J} V^j$ be in this intersection.  $f^j$ is a arbitrarily ``good'' approximation of $f\in L$.  
+
+Also, recall (for Riesz basis), $\forall \, x \in V^j$, $\exists \, c^j, C^j$ constants \\
+$ c^j \| x \| \leq \left( \sum_{k \in K^j} | \langle x , \phi_k^j \rangle |^2 \right)^{1/2} \leq C^j \| x\| $ \, $\forall \, x \in V^j$
+
+This bounds the values that $\forall \in f \in V^j$ takes in terms of the scaling functions $\phi_k^j$.  
+
+
+Now, $\exists \, $ dual multiresolution analysis $\widehat{M} = \lbrace \widehat{V}^j \subset L | j \in J \rbrace$ \\
+\phantom{ dual } for dual scaling functions $\widehat{\phi}^j_k$, biorthogonal to primal scaling functions $\langle \widehat{\phi}_{k'}^{j'} , \phi_k^j \rangle = \delta^{j'j}_{k'k}$  
+
+\section{Interpolating Wavelet Transform}
+
+cf. Donoho and Harten\cite{DDonoho1992}, \cite{AHarten1994}.  
+
+EY : 20150626 I think interpolation means getting the value of the wavelet between given wavelet values.  
+
+Consider so-called dyadic grids on $\mathbb{R}$
+\[
+\mathcal{G}^j = \lbrace x^j_k \in \mathbb{R} | x^j_k = 2^{-j}k ,\, k \in \mathbb{Z} \rbrace , \, j \in \mathbb{Z}
+\]
+where $x^j_k$ are grid (collocation) pts. $j$ level of resolution.  
+
+At this point, you should open \verb|1dGrid.py| on \href{https://github.com/ernestyalumni/OnWavelets}{github - repo: OnWavelets ; ernestyalumni} and look at functions \verb|faireGrid| and \verb|trunc_grid| which makes $\mathcal{G}^j$ to the desired resolution $j$ and truncates the size of the grid to have the same ``length'' over all resolutions, respectively.   
+
+Note $x_k^{j-1} = x^j_{2k}$, so $\mathcal{G}^{j-1} \subset \mathcal{G}^j$
+
+This interpolating subdivision scheme is due to Deslauriers and Dubuc \cite{GDeslauriersSDubuc1989}.  
+We want to find local polynomials $P_{2N-1}(x)$ of order $2N-1$, $P_{2N-1}(x) = q_0 + q_1 x + \dots + q_{2N-1}x^{2N-1}$, using $2N$ closest pts.  
+
+For $\begin{aligned} & \quad \\ 
+  & \mathcal{G}^j = \lbrace x^j_k \in \mathbb{R} | x^j_k = \frac{k}{2^j}, \, k \in \mathbb{Z} \rbrace \\
+  & \mathcal{G}^{j+1} = \lbrace x^{j+1}_k \in \mathbb{R} | x^{j+1}_k = \frac{k}{2^{j+1}}, \, k \in \mathbb{Z} \rbrace \end{aligned}$
+
+\begin{figure}[h!] \label{Fig:f(x)on2grids}
+  \caption{Examples of $\mathcal{G}^j$ }
+ \centering
+   \includegraphics[width=0.7\textwidth]{1dgridfig_1.png}
+\end{figure}
+
+
+Given values at \\
+\phantom{ \quad \quad \, } $x^j_{k+l}$ \, $(l = -N+1 \dots N)$ for $2N$ values, i.e. \\
+\phantom{ \quad \quad \, } $x^j_{k-N+1} \dots x^j_{k-N+2} \dots x^j_k \dots x^j_{k+N}$
+
+Then with these given values, \\
+\phantom{ \quad \, } $\lbrace f(x^j_{k+l}) \rbrace_{l = -N + 1 \dots N }$,
+
+
+Obtain polynomial $P_{2N-1}(x)$, and so obtain values at \\
+\phantom{\quad \quad \, } $x^{j+1}_{2k+1} \in \mathcal{G}^{j+1}  = \lbrace x^{j+1}_k \in \mathbb{R} | x_k^{j+1} = \frac{k}{2^{j+1}} , \, k \in \mathbb{Z} \rbrace$
+
+Interpolant $f^j(x)$ is on grid $\mathcal{G}^{j+1}$
+\begin{equation}
+  f^j(x^{j+1}_{2k+1}) = \sum_{l=-N+1}^N w^j_{kl} f(x^j_{k+l})
+\end{equation} Eq. 8 of \cite{OVasilyevCBowman2000}
+Remember that $x^j_k = x^{j+1}_{2k}$
+
+Note that $P_{2N-1}(x) \in k[x] = \mathbb{R}[x]$, which is the polynomial ring over $\mathbb{R}$, a commutative ring over field $k=\mathbb{R}$.  
+
+Now surely $f^j(x^{j+1}_{2k+1}) = P_{2N-1}(x^{j+1}_{2k+1}) = \sum_{l=-N+1}^N w^j_{kl} P_{2N-1}(x^j_{k+l})$ and so \\
+\phantom{Now surely }$P_{2N-1}(x^j_{k+l}) = f(x^j_{k+l})$
+
+EY : 20150626 it's unclear to me whether we can obtain the so-called weights $w_{kl}^j$ in a closed expression or not or, armed with the polynomial $P_{2N-1}(x)$; though I think it's a system of linear equations to be solved.  This point I want to raise here was \emph{important} in the \emph{implementation} I had for interpolating functions.  
+
+\subsection{Interpolating scaling function $\phi_k^j(x) \in V^j$}\label{SubSec:Interpolatingscalingfunction}
+
+interpolating scaling function $\phi^j_k(x)$ 
+
+set $f(x_l^j) = \delta_{lk}$
+
+Let $J$ arbitrary high level of resolution.  Interpolating subdivision scheme results in $\phi_k^j$ sampled at locations $x_k^J$
+\[
+f^j(x) = \sum_k c_k^j \phi_k^j(x)
+\]
+where, by wavelet notation, $c_k^j = f(x_k^j)$
+
+$\phi(x)$ is the \textbf{interpolating scaling function}.  $\phi(x) = \phi_0^0(x)$
+
+\begin{itemize}
+  \item $\phi(x)$ is cardinal (interpolating) i.e. $\phi(k) = \delta_{k0}$
+\end{itemize}
+
+$\begin{aligned}
+  & f^j \in V^j \\ 
+  & f^{j+1} \in V^{j+1}
+\end{aligned}$
+
+``Due to the cardinal property of the interpolating wavelet'' $f^j(x_k^j) = f(x^j_k)$ (EY : 20150712 It's unclear to me what cardinal means in this context) 
+\[
+f^j(x_k^j)= \sum_l c_l^j \phi_l^j(x_k^j) = \sum_l f(x_l^j) \phi_l^j(x^j_k) = \sum_l \delta_{lk} \phi_l^j(x_k^j) = \phi_k^j(x_k^j)
+\]
+
+Now call \\
+wavelet coefficient $d^j_k : = \frac{1}{2} ( f^{j+1}(x^{j+1}_{2k+1} ) - f^j(x^{j+1}_{2k+1})$
+
+and set $\psi_k^j(x) = 2\phi^{j+1}_{2k+1}(x) $ or $\psi(x) = 2\phi(2x-1)$.
+
+Define detail function $d^j(x)$
+\[
+d^j(x) = \sum_m d_m^j\psi_m^j(x)
+\]
+$f^{j+1}(x) = f^j(x) + d^j(x)$ since 
+\[
+f^{j+1}(x) - f^j(x) = \sum_l c_l^{j+1} \phi_l^{j+1}(x) - \sum_l c^j_l \phi_l^j(x)
+\]
+
+Now
+\[
+\begin{gathered}
+  f^{j+1}(x) = f^j(x) + d^j(x) \Longrightarrow \sum_k c_k^{k+1} \phi_k^{j+1}(x) = \sum_l c^j_l \phi_l^j(x) + \sum_m d_m^j\psi_m^j(x)
+\end{gathered}
+\]
+
+
+forward interpolating wavelet transform:
+\begin{equation}\label{Eq:forwardinterpolatingwavelettransform}
+\begin{aligned}
+  & d_k^j = \frac{1}{2} \left( c_{2k+1}^{j+1} - \sum_l w_{kl}^j c^{j+1}_{2(k+l) } \right) \\ 
+  & c_k^j = c^{j+1}_{2k}
+\end{aligned}
+\end{equation}
+
+inverse wavelet interpolating transform
+\begin{equation}\label{Eq:invinterpolatingwavelettransform}
+  \begin{aligned}
+    & c_{2k}^{j+1} =c_k^j \\  
+    &  c_{2k+1}^{j+1} = 2 d_k^j + \sum_l w_{kl}^j c_{k+l}^j
+  \end{aligned}
+\end{equation}
+
+Look at Figure \ref{Fig:fwdinvintwt_fig_2}, which is a direct implementation of Eqns. \ref{Eq:forwardinterpolatingwavelettransform}, \ref{Eq:invinterpolatingwavelettransform}, which was plotted with \verb|1dgrid.py|.  Starting from the highest level of resolution $J=5$, I plotted out the $d^{J-1}_k$ and $c^{J-1}_k$ coefficients.  Then one can reconstruct from these coefficients the resolution above with the inverse wavelet interpolating transform.  
+
+\begin{figure}[h!]\label{Fig:fwdinvintwt_fig_2}
+\caption{Using forward interpolating wavelet transforms (first top 2 graphs) and the inverse wavelet interpolating transform (bottom)}
+ \centering
+   \includegraphics[width=0.9\textwidth]{fwdinvintwt_fig_2.png}
+\end{figure}
+
+
+
+Let $c_k^j = f(x_k^j)$ with $x^j_k = \frac{k}{2^j}$ \\
+e.g. $j=J-1$ (Let's go to the next lowest resolution.) 
+\[
+\begin{aligned}
+& d^{J-1}_w = \frac{1}{2} ( c^J_{2k+1} - \sum_l w^{J-1}_{kl} c^J_{2(k+l)}  )\\
+  & c^{J-1}_k = c^J_{2k}
+\end{aligned}
+\]
+
+Given $\mathcal{G}^{j+1} \ni x^{j+1}_l$ and values $f(x_l^{j+1})$, \, $\forall \, x^{j+1}_l \in \mathcal{G}^{j+1}$ \\
+$\forall \, x^j_k = x^{j+1}_{2k} \in \mathcal{G}^j \subset \mathcal{G}^{j+1}$, how to obtain the interpolating polynomials?  \\
+\phantom{ \quad \, } For $N$, consider values at $x^j_{k+l}$, \, $l=-N+1 \dots N$, $\lbrace f(x^j_{k+l})\rbrace_{l=-N+1 \dots N }$  
+
+since 
+\[
+f^j(x^{j+1}_{2k+1}) = \sum_l w^j_{kl} f(x^j_{k+l})  =\sum_l w^j_{kl} f(x^{j+1}_{2(k+l)}) = \sum_l w^j_{kl} c^{j+1}_{2(k+l)}
+\]
+So for $d_k^j$ in the forward interpolating wavelet transform, Eq. \ref{Eq:forwardinterpolatingwavelettransform}, it's essentially half the difference of the actual value and the polynomial estimate.  
+
+Now suppose we have $2N_0$ grid points for 
+\[
+\mathcal{G}^{j+1} = \lbrace x^{j+1}_k | x^{j+1}_k = \frac{k}{2^{j+1}} \rbrace_{k=0 \dots 2N_0 - 1}
+\]
+even $2k$ \quad \, $k=0\dots N_0 -1$ \quad \, $2k= 0\dots 2N_0 -2 $ \\
+odd $2k+1$ \quad \, $k=0\dots N_0 -1$ \quad \, $2k+1 = 1 \dots 2N_0-1$ \\
+
+$l=-N+1 \dots N$, $2N$ values 
+
+$2(k+l)$  \\
+
+\[
+\begin{gathered}
+  2(k+N) > 2N_0 -2 \\
+  k+N > N_0 -1 \\
+  k > N_0 -1 - N 
+\end{gathered}
+\]
+
+on the ``right side'',
+\[
+\begin{gathered}
+  2(k-N+1) < 0 \\
+  k < N-1
+\end{gathered}
+\] 
+
+\begin{figure}[h!] \label{Fig:distd^j_kintwt}
+ \caption{My attempt at the reproduction of the distribution of coefficients $d^j_k$ of the interpolating wavelet transform of the function given in Fig \label{Fig:fwdinvintwt_fig_2}, Fig.6. of \cite{OVasilyevCBowman2000}}
+ \centering
+   \includegraphics[width=0.9\textwidth]{dist_intwt_fig_3.png}
+\end{figure}
+
+EY : 20150712 Why Fig. \ref{Fig:distd^j_kintwt} doesn't exactly look like Fig. 6. of \cite{OVasilyevCBowman2000}: It would be good to clarify what exact grid was used and the scale of the ``$y$-axis'', i.e. the value of the coefficients, for the coefficients.  But if there's something with the code itself, then pointing out what went wrong would help.  
+
+\section{Second generation wavelets}\label{Sec:2ndGenWavelets} cf. Vasilyev and Bowman (2000)\cite{OVasilyevCBowman2000}
+
+Consider 
+\[
+\begin{aligned}
+& \phi^{j+1}(x) \in V^{j+1} = V^j \oplus W^j \\
+& \phi^{j+1}(x) = \sum_k c_k^{j+1} \phi_k^{j+1}(x) = \sum_k c_k^j \phi_k^j(x) + \sum_k d_k^j \psi_k^j(x) \end{aligned}
+\]
+which we can write, using the orthonormal basis $\lbrace \phi_k^j(x) = 2^{j/2}\phi(2^jx-k) \rbrace_{k\in \mathcal{K}}$ for $V^j$.  $\lbrace \psi^j_k \rbrace_{k\in \mathcal{K}}$ is the orthonormal basis for $W^j$. 
+
+For the scaling function $\phi(x) \in V^0$, since $V^0 \subset V^1$, then we can write $\phi(x)$ as 
+\begin{equation}\label{Eq:scalingfunctioninV^1}
+\phi(x) = \sum_l h(l) 2^{1/2} \phi(2x-l)
+\end{equation}
+
+Now, by theorem (such as Daubechies Thm. 6.3.6)
+\begin{equation}\label{Eq:psiinV^1}
+\psi(x) = \sum_l(-1)^l h(-l+1)2^{1/2} \phi(2x-l) = \sum_l g(l) 2^{1/2} \phi(2x-l)
+\end{equation}
+So
+\[
+\begin{aligned}
+  & \phi^j_k(x) = 2^{j/2}\phi(2^jx - k ) = 2^{j/2} \sum_l h(l)2^{1/2} \phi(2^{j+1}x-2k-l) = \sum_l h(l) \phi^{j+1}_{2k+l}(x) = \sum_m h(m-2k) \phi^{j+1}_m(x)   \\ 
+  & \psi_k^j(x) = 2^{j/2}\psi(2^jx-k) = 2^{j/2}\sum_l h_1(l) 2^{1/2}\phi(2^{j+1}x - 2k-l) = \sum_l g(l) \phi^{j+1}_{2k+l}(x)  = \sum_m g(m-2k) \phi^{j+1}_m(x)
+\end{aligned}
+\]
+Then
+\begin{equation}\label{Eq:c^j_kd^j_k00}
+\begin{aligned}
+&  c^j_k = \langle \phi^{j+1}(t), \phi^j_k(t) \rangle = \langle \sum_l c_l^{j+1}\phi_l^{j+1}(x) , \sum_m h(m-2k) \phi_m^{j+1}(x) \rangle 
+ = \sum_l h(l-2k) c^{j+1}_{l } = \sum_l \widetilde{h}(2k-l) c^{j+1}_l \\  % \overset{u=2k+l}{=} \sum_u h_0(u-2k) c_u^{j+1} \\ 
+& d_k^j = \langle \phi^{j+1}(t), \psi_k^j(t) \rangle  = \langle \sum_l c_l^{j+1}\phi_l^{j+1}(x) , \sum_m g(m-2k) \phi_m^{j+1}(x) \rangle 
+ = \sum_l g(l-2k) c^{j+1}_{l } = \sum_l \widetilde{g}(2k-l) c^{j+1}_l
+\end{aligned}
+\end{equation}
+where the $\widetilde{\,}$ superscript notation is the ``spatial reversal'' (or time-reversal if $x$ was thought of as time), so that $h(n) = \widetilde{h}(-n)$ and likewise for $g$.  
+
+Thus,
+\begin{equation}\label{Eq:c^{j+1}_k00}
+\begin{gathered}
+  \langle \phi^{j+1}(t), \phi^{j+1}_k(t) \rangle = c_k^{j+1} = \sum_{k'}c_{k'}^j \langle \phi^j_{k'}(t) , \phi^{j+1}_k(t) \rangle + \sum_{k'} d^j_{k'} \langle \psi_{k'}^j(t), \phi^{j+1}_k(t) \rangle = \sum_{k'} c_{k'}^j h(k-2k') + \sum_{k'} d_{k'}^jg(k-2k')
+\end{gathered}
+\end{equation}
+where 
+\[
+\begin{aligned}
+  & \langle \phi^j_{k'}(t), \phi_k^{j+1}(t) \rangle = \sum_l h_0(l) \delta(2k' + l-k) = h(k-2k') \\ 
+  & \langle \psi^j_{k'}(t), \phi^{j+1}_k(t) \rangle =\sum_l h_1(l) \delta(2k'+l -k) = g(k-2k')
+\end{aligned}
+\]
+
+EY : 20150707 The coefficients $c_k^j$'s $d_k^j$'s live in a different space from $V^j$s, $W^j$s.  These coefficients obey a different algebra than the algebra of the scaling function and wavelets.  
+
+$\forall \, j \in \mathbb{Z}$, $V^j$ is a $k$-algebra.  $V^j$ is a ring with addition and multiplication being convolution.  $k$ is a commutative ring with addition and multiplication (in the usual sense, like scalar addition and scalar multiplication).  But $k$ has also addition and multiplication on its ``indices.''  \cite{EYeung2015}
+
+\begin{proposition}
+$\forall \, j \in \mathbb{Z}$, $V^j$ is a $L^2(\mathbb{R})$-module.  
+\end{proposition}
+\begin{proof}
+  Sketch of a proof: $\forall \, f^j, g^j, p^j \in V^j$, then under addition, it is (additive) group \\ so that $f^j + g^j \in V^j$ \\
+$f^j + g^j = g^j + f^j$ (commutativity) \\
+$(f^j + g^j) + p^j = f^j + (g^j + p^j)$ (associativity) \\
+
+and it is equipped with multiplication being the convolution and this multplication is commutative
+\[
+(h*f^j)(t) = \int_{-\infty}^{\infty} d\tau h(t-\tau)f^j(\tau) = (f^j*h)(t)
+\]
+\end{proof}
+
+\begin{proposition}
+$V^j$ also is equipped as a $k^j$-module over $k^j$ which itself a $k$-algebra of coefficients $c^j_k$s, $d^j_k$s.  
+\end{proposition}
+You can do addition and multiplication in $k^j$ with $k^j$ as a ring: 
+\[
+c^j_k + d^j_k
+\]
+\[
+h(k-2m)c_m^j
+\]
+and you can also do addition and multiplication on the ``indicies'' as a commutative ring (but with no distributivity):
+\[
+\begin{aligned}
+  & c^j_{k+l} = c^j_{l+k} \\ 
+  & c^j_{(MN)k} = c^j{(NMk)}
+\end{aligned}
+\]
+So $V^{j+1}$ is a $k^{j+1}$-module over $k^{j+1}$ algebra.  \\
+$V^{j+1} = V^j\oplus W^j$ and $W^j$ is a $D^j$-module over $D^j$ algebra (consisting of $d^j_k$ coefficients).  \\
+I claim that $k^{j+1} = k^j\oplus D^j$.  
+
+For the filter bank representation involving coefficients $c_k^{j+1}$, $c_k^j$, $d_k^j$, define the convolution function, that involves the commutative ring $k$ in the indices:
+\[
+\widetilde{h}* c_k^{j+1} = \sum_l \widetilde{h}(k-l)c_l^{j+1}
+\]
+Then the filter bank representation can be written as a commutative diagram for wavelet coefficients, which does not involve $V^j$s at all, but on its $k^j$ algebra \cite{EYeung2015}:
+
+\begin{tikzpicture}
+  \matrix (m) [matrix of math nodes, row sep=2em, column sep=4em, minimum width=4em]
+  {
+         & k^{j+1} & D^j  & k^{j+1} & k^{j+1} &    \\
+ k^{j+1} &         &      &         &         & k^{j+1}   \\
+         & k^{j+1} & k^j  & k^{j+1} & k^{j+1} &
+\\ };
+  \path[->]
+  (m-2-1) edge node [above] {$\widetilde{g} *$} (m-1-2)
+           edge node [below] {$\widetilde{h} * $} (m-3-2)
+  (m-1-2) edge node [above] {$\downarrow 2$} (m-1-3) 
+  (m-1-3) edge node [above] {$\uparrow 2$} (m-1-4) 
+  (m-1-4) edge node [auto]  {$g*$} (m-1-5)
+  (m-1-5) edge node [above] {$\oplus$} (m-2-6)
+  (m-3-2) edge node [above] {$\downarrow 2$ } (m-3-3)
+  (m-3-3) edge node [above] {$\uparrow 2 $} (m-3-4)         
+  (m-3-4) edge node [above] {$h*$} (m-3-5) 
+  (m-3-5) edge node [below] {$\oplus$} (m-2-6)
+;
+\end{tikzpicture}
+
+\begin{tikzpicture}
+  \matrix (m) [matrix of math nodes, row sep=2em, column sep=4em, minimum width=2em]
+  {
+         & \sum_l \widetilde{g}(k-l)c_l^{j+1} &  d_k^{j}  & d^j_{k/2} & \sum_l g(k-l)c^j_{l/2} &    \\
+ c^{j+1}_k &             &       &        &            & c^{j+1}_k  \\
+         & \sum_l \widetilde{h}(k-l)c_l^{j+1} & c_k^j  & c^j_{k/2} & \sum_l h(k-l)d^j_{l/2}  &
+\\ };
+  \path[|->]
+  (m-2-1) edge node [above] {$\widetilde{g} *$} (m-1-2)
+           edge node [below] {$\widetilde{h} * $} (m-3-2)
+  (m-1-2) edge node [above] {$\downarrow 2$} (m-1-3) 
+  (m-1-3) edge node [above] {$\uparrow 2$} (m-1-4) 
+  (m-1-4) edge node [auto]  {$g*$} (m-1-5)
+  (m-1-5) edge node [above] {$+$} (m-2-6)
+  (m-3-2) edge node [above] {$\downarrow 2$ } (m-3-3)
+  (m-3-3) edge node [above] {$\uparrow 2 $} (m-3-4)         
+  (m-3-4) edge node [above] {$h*$} (m-3-5) 
+  (m-3-5) edge node [below] {$+$} (m-2-6)
+;
+\end{tikzpicture}
+
+with
+\[
+\begin{gathered}
+  \widetilde{h}*c_k^{j+1} = \sum_l \widetilde{h}(k-l)c_l^{j+1} \overset{ \downarrow 2}{\mapsto} \sum_l \widetilde{h}(2k-l) c_l^{j+1} = \sum_l h(l-2k) c_l^{j+1} = c_k^j
+\end{gathered}
+\]
+(confirming Eq. \ref{Eq:c^j_kd^j_k00}) and likewise,
+\[
+d^j_k = \downarrow 2 \circ \widetilde{g} * c_k^{j+1}
+\]
+and for the reconstruction part, 
+\[
+\begin{aligned}
+  & h * \uparrow 2 \circ c_k^j = \sum_l h(k-l)c^j_{l/2} = \sum_m h(k-2m) c^j_m \\ 
+  & g * \uparrow 2 \circ d_k^j = \sum_l g(k-l)d^j_{l/2} = \sum_m g(k-2m) d^j_m 
+\end{aligned}
+\]
+(confirming Eq. \ref{Eq:c^{j+1}_k00}) and the sum of the above is $c_k^{j+1}$.  
+
+Again, my point is that $\downarrow 2$, $\uparrow 2$ does not act on $x\in \mathbb{R}$, the domain of $V^j$ as $L^2(\mathbb{R})$, but it acts on the commutative ring of the indices.  
+
+To strengthen the rationale for this construction, let me point out this.  Begin with the usual so-called 2-channel filter bank with decomposition or ``analysis'' beginning from the left and reconstruction or ``synthesis'' to the end, beginning with some input $f(x) \in L^2(\mathbb{R})$ at the left and seeking perfect reconstruction of the input from the output $\widetilde{f}(x) = f(x)$ at the end, on the right.  The so-called downstream sampling by 2, $\downarrow 2$, acts on this input $f(x)$ by yielding a function $y(x) = f(2x)$.  
+
+However, for wavelets, we begin with coefficient $c_k^{j+1}$ which is associated with basis element of $V^{j+1}$ $\phi^{j+1}_k = 2^{\frac{j+1}{2}} \phi( 2^{j+1}x -k)$ After the decomposition step $\downarrow 2 \circ H*$, we want the coefficient $c_k^j$, which is associated with orthonormal basis element of $V^j$ $\phi^j_k = 2^{ \frac{j}{2}} \phi(2^j -k)$.  However, there is no way, if $\downarrow 2$ is thought of as acting on the spatial (or in other applications time) domain, to obtain $c^j_k$; it's not even clear if we are on the correct (sub)space $V^j$!  For, explicitly,
+\[
+\begin{gathered}
+  \phi^{j+1}(x) = \sum_k c^{j+1}_k\phi_k^{k+1}(x) \\ 
+  h * \phi^{j+1}(x) = \sum_k c_k^{k+1} \int_{-\infty}^{\infty} d\tau \phi^{j+1}_k(x-\tau)h(\tau) \\ 
+  \downarrow h* \phi^{j+1}(x) = \sum_k c_k^{j+1} \int_{-\infty}^{\infty} d\tau \phi^{j+1}_k(2x-\tau)h(\tau) \quad \quad \text{(if we believe that $\downarrow 2$ acts on the spatial $x$ or (time $t$))}
+\end{gathered}
+\]
+and $\phi^{j+1}_k(2x-\tau)$ clearly cannot yield us $\phi^j_k(x)$.  
+
+Thus, there is a need for a $k^j$-algebra of the wavelet coefficients associated with each $L^2(\mathbb{R})$-algebra $V^j$.  
+
+Lifting is done as follows: with $\sharp$ denoting the new coefficient or filter bank coefficient, then
+\begin{equation}\label{Eq:djcjlifted}
+\boxed{
+\begin{aligned}
+  & \widetilde{h}^{\sharp} = \widetilde{h} + u * \widetilde{g} \\ 
+  & g^{\sharp} = g- h* u
+\end{aligned}
+}\end{equation}
+Then the coefficients are now as follows:
+\begin{equation}\label{Eq:cj+1lifted}
+\boxed{ \begin{aligned}
+  & d^j_k = \sum_l \widetilde{g}^j(2k-l) c_l^{j+1} \\ 
+  & c^{\sharp j}_k = c^j_k + \sum_{l,m} u(2k-m)\widetilde{g}(m-l) c_l^{j+1} = \sum_l \widetilde{h}^j(2k-l) c_l^{j+1} + \sum_m u(2k-2m)d^j_m
+\end{aligned} }
+\end{equation}
+and
+\begin{equation}
+\boxed{ c^{\sharp j+1}_k = \sum_l h(k-l) (c_l^j - \sum_m u^j(2l-2m)d_m^j) + \sum_m (g(k-2m)d_m^j - \sum_l h(k-l)u(l-2m)d_m^j ) }
+\end{equation}
+Comparing Eqns. \ref{Eq:djcjlifted}, \ref{Eq:cj+1lifted} with Eqns. 21,22,23 of Vasilyev and Bowman (2000) \cite{OVasilyevCBowman2000}, I believe some terms are missing in Vasilyev and Bowman's equations.  
+
+
+\subsection{Lifted interpolating Wavelet Transform}
+
+Condition: $\underline{\psi}^j_k=0$ (mean of wavelet $\psi^j_k$ is zero) $\leftrightarrow \bar{f}^j(x)$ \, $\forall \, j \in J$ (resolution level)  
+
+[23]
+
+define $\widetilde{w}^j_{kl}$ interpolating coefficients from odd points $x^{j+1}_{2(k+l) +1}$ to even points $x^{j+1}_{2k}$ \\
+condition then is $u^j_{km} = \widetilde{w}^j_{k,m-k}$
+
+
+
+
+
+\begin{thebibliography}{9}
+
+\bibitem{KSchneiderOVasilyev2010} Kai Schneider and Oleg V. Vasilyev, ``Wavelet Methods in Computational Fluid Dynamics,'' \emph{Annual Review of Fluid Mechanics}, 2010 doi: 10.1146/annurev-fluid-121108-145637
+
+\bibitem{GStrangKAmaratunga2003}
+Gilbert Strang, and Kevin Amaratunga. 18.327 Wavelets, Filter Banks and Applications, Spring 2003. (Massachusetts Institute of Technology: MIT OpenCourseWare), \url{http://ocw.mit.edu} (Accessed 19 Jun, 2015). License: Creative Commons BY-NC-SA
+
+\bibitem{GStrangTNguyen1996}
+Gilbert Strang, Truong Nguyen. \textbf{Wavelets and Filter Banks}, Wellesley-Cambridge Press; 2nd edition, 1996. ISBN-13: 978-0961408879
+
+\bibitem{ELiebMLoss2001}
+Elliott H. Lieb and Michael Loss, \textbf{Analysis} (Graduate Studies in Mathematics), Book 14, American Mathematical Society, 2nd edition, 2001. ISBN-13: 978-0821827833
+
+\bibitem{PWojtaszczyk1997}
+P. Wojtaszczyk, \textbf{A Mathematical Introduction to Wavelets}, (London Mathematical Society Student Texts), Cambridge University Press, 1997. ISBN-13: 978-0521578943 
+
+\bibitem{DDonoho1992} D. L. Donoho, \emph{Interpolating Wavelet Transforms}, Technical Report \textbf{408} (Department of Statistics, Stanford University, 1992).
+
+\bibitem{AHarten1994}
+A. Harten, \emph{Adaptive multiresolution schemes for shock computations}, J. Comput. Phys. \textbf{115}, 319 (1994).
+
+\bibitem{GDeslauriersSDubuc1989}
+G. Deslauriers and S. Dubuc, \emph{Symmetric iterative interpolation process}, Constr. Approx. \textbf{5}, 49 (1989).
+
+
+\bibitem{IDaubechies1992}
+Ingrid Daubechies, \textbf{Ten Lectures on Wavelets} (CBMS-NSF Regional Conference Series in Applied Mathematics), SIAM: Society for Industrial and Applied Mathematics, 1992. ISBN-13: 978-0898712742 
+
+
+\bibitem{OVasilyevSPaolucciMSen1995}
+Oleg V. Vasilyev, Samuel Paolucci, and Mihir Sen. ``A Multilevel Wavelet Collocation Method for Solving Partial Differential Equations in a Finite Domain,'' \underline{Journal of Computational Physics}, \textbf{120}, 33-47 (1995), \url{http://scales.colorado.edu/vasilyev/Publications/JCP1995.pdf}
+
+\bibitem{OVasilyevCBowman2000}
+Oleg V. Vasilyev and Christopher Bowman, ``Second-Generation Wavelet Collocation Method for the Solution of Partial Differential Equations,'' \underline{Journal of Computational Physics} \textbf{165}, 660–693 (2000), \url{http://scales.colorado.edu/vasilyev/Publications/JCP2000.pdf}
+
+\bibitem{EYeung2015}
+Ernest Yeung, \emph{On Wavelets and MIT OCW 18.327 Wavelets, Filter Banks, and Applications}, \href{https://ernestyalumni.files.wordpress.com/2015/07/onwavelets18_327.pdf}{ernestyalumni.wordpress.com blog}, \href{https://github.com/ernestyalumni/18-327-wavelets-filter-banks}{github - repo: 18-327-wavelets-filter-banks}
+
+\end{thebibliography}
+
+
+
+
+\end{document}
